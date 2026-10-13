@@ -1,0 +1,6 @@
+artifacts/
+agent-state/
+*.exe
+*.token
+*.pem
+.env*
