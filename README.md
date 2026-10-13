@@ -1,8 +1,24 @@
 # Pulse Agent
 
-Native Linux/Windows telemetry agent for [Pulse Monitor](https://github.com/HubbaBubbaPrepod/pulse-monitor). Sends host metrics over HTTPS, with optional native collector modules. MIT licensed.
+**Русский** · [English](README.en.md)
+
+Нативный агент телеметрии Linux/Windows для [Pulse Monitor](https://github.com/HubbaBubbaPrepod/pulse-monitor). Отправляет метрики узла по HTTPS и поддерживает дополнительные нативные модули.
 
 Агент собирает CPU/память, процессы, диски, соединения, системные журналы и доступные GPU-показатели. Он отправляет отчёты в панель и не открывает входящий порт на узле.
+
+[![CI](https://github.com/HubbaBubbaPrepod/pulse-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/HubbaBubbaPrepod/pulse-agent/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/HubbaBubbaPrepod/pulse-agent)](https://github.com/HubbaBubbaPrepod/pulse-agent/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+[Быстрый старт](#быстрый-старт) · [Службы](#службы) · [Аргументы](#аргументы) · [Доступность данных](#доступность-данных) · [Поддержка](SUPPORT.ru.md)
+
+## Экосистема Pulse
+
+| Репозиторий | Назначение |
+| --- | --- |
+| [Pulse Monitor](https://github.com/HubbaBubbaPrepod/pulse-monitor) | Панель, пользователи, узлы, хранение истории и управление модулями |
+| [Pulse Agent](https://github.com/HubbaBubbaPrepod/pulse-agent) | Нативный сбор метрик и исходящие отчёты с каждого узла |
+| [Pulse Module Docker](https://github.com/HubbaBubbaPrepod/pulse-module-docker) | Отдельный модуль статистики контейнеров Docker |
 
 ## Быстрый старт
 
@@ -11,11 +27,17 @@ Native Linux/Windows telemetry agent for [Pulse Monitor](https://github.com/Hubb
 3. Сохраните токен без кавычек в `agent.token`. Linux: `chmod 600 agent.token`; Windows: ограничьте ACL учётной записью службы, SYSTEM и администраторами. Не передавайте токен в URL или командной строке.
 4. Запустите из каталога программы:
 
-   ```text
-   pulse-agent -url https://monitor.example.com:8443 -server SERVER_ID -token-file agent.token -state agent-state
+   ```bash
+   ./pulse-agent -url https://monitor.example.com:8443 -server SERVER_ID -token-file agent.token -state agent-state
    ```
 
-   PowerShell: `./pulse-agent.exe`. Каждому узлу — отдельные ID, токен и состояние. Два агента с одним токеном запускать нельзя. Посмотрите реальные данные узла в панели.
+   На Windows:
+
+   ```powershell
+   ./pulse-agent.exe -url https://monitor.example.com:8443 -server SERVER_ID -token-file agent.token -state agent-state
+   ```
+
+   Каждому узлу — отдельные ID, токен и состояние. Два агента с одним токеном запускать нельзя. Посмотрите реальные данные узла в панели.
 
 Для локальной разработки разрешён `-url http://127.0.0.1:8080`. Удалённый URL должен быть HTTPS origin без пути, query или credentials; сертификат проверяется, режима отключения проверки нет. Для внутреннего CA настройте доверие ОС.
 
@@ -37,7 +59,13 @@ Windows, административный PowerShell:
 ./deployment/install-agent.ps1 -PanelURL https://monitor.example.com:8443 -ServerID SERVER_ID -TokenFile C:\Pulse\agent.token -AgentExe C:\Pulse\pulse-agent.exe
 ```
 
-Служба `PulseAgent` запускается автоматически от LocalSystem; состояние по умолчанию `C:\ProgramData\PulseAgent`. Ограничьте ACL токена и состояния до включения службы.
+Служба `PulseAgent` запускается автоматически от LocalSystem; каталог по умолчанию — `C:\ProgramData\PulseAgent`. Установщик копирует туда бинарник и токен и ограничивает ACL каталога/токена до SYSTEM и администраторов. Защитите также исходный файл токена.
+
+### Аргументы установщиков
+
+Linux: `install-agent.sh <panel-url> <server-id> <token-file> [package-dir]`. Необязательный каталог пакета по умолчанию — родительский каталог скрипта установки.
+
+Windows: `-PanelURL`, `-ServerID` и `-TokenFile` обязательны; `-AgentExe` по умолчанию — `pulse-agent.exe` в родительском каталоге скрипта; `-StateDirectory` по умолчанию — `C:\ProgramData\PulseAgent`, он также содержит установленный бинарник и токен.
 
 ## Аргументы
 
@@ -53,9 +81,14 @@ Windows, административный PowerShell:
 
 ## Доступность данных
 
+| Платформа | Архитектура релиза | Служба | Ограничения |
+| --- | --- | --- | --- |
+| Linux | amd64, arm64 | systemd | Видимость процессов, соединений и журналов зависит от прав ОС |
+| Windows | amd64 | Windows Service / LocalSystem по умолчанию | CIM/GPU Engine и захват зависят от драйверов и прав |
+
 GPU зависит от ОС, драйвера и `nvidia-smi`; часть Windows-показателей доступна через CIM/GPU Engine. Intel/AMD не имеют гарантированной полной телеметрии. Отсутствующие показатели обозначаются как недоступные, а не нулевые.
 
-Соединения и общие скорости работают без дополнительных программ. Для метаданных пакетов установите TShark отдельно; Windows требует Npcap и права захвата. Список интерфейсов: `tshark -D`; добавьте `-capture 1` или имя. Агент не устанавливает драйверы. Содержимое пакетов не сохраняется; привязка пакета к PID и скорость отдельного соединения не вычисляются.
+Соединения и общие скорости работают без дополнительных программ. Для метаданных пакетов установите TShark отдельно; Windows требует Npcap и права захвата. Список интерфейсов: `tshark -D`; добавьте `-capture 1` или имя. Агент не устанавливает драйверы. Содержимое пакетов не сохраняется; привязка пакета к PID и скорость отдельного соединения не вычисляются. Захват — выборка метаданных до 256 пакетов на отчёт; сводки протоколов всё равно могут содержать чувствительные сведения.
 
 Права ОС определяют видимость процессов, соединений и журналов. Командные строки процессов и системные журналы могут содержать чувствительные сведения — учитывайте это при предоставлении доступа к панели.
 
@@ -65,7 +98,7 @@ GPU зависит от ОС, драйвера и `nvidia-smi`; часть Windo
 
 Модуль запускает произвольный нативный код с правами агента, без песочницы. `permissions` — описание, а не ограничение ОС. Устанавливайте только доверенные пакеты через панель. [Формат пакета и процесса](https://github.com/HubbaBubbaPrepod/pulse-monitor/blob/main/docs/MODULES.md).
 
-Docker-сборщик выпускается отдельно: [Pulse Module Docker](https://github.com/HubbaBubbaPrepod/pulse-module-docker). Скачайте `docker-module.json` v1.0.1 из его Releases и загрузите в настройки модулей панели. Пакет использует протокол v1 и содержит сборки для Linux amd64/arm64 и Windows amd64. Сборщик делает запросы чтения, но Docker socket даёт привилегированный доступ к хосту; не считайте его безопасным только из-за характера запросов.
+Docker-сборщик выпускается отдельно: [Pulse Module Docker](https://github.com/HubbaBubbaPrepod/pulse-module-docker). Скачайте `docker-module.json` v1.0.2 из его Releases и загрузите в настройки модулей панели. Пакет использует протокол v1 и содержит сборки для Linux amd64/arm64 и Windows amd64. Сборщик делает запросы чтения, но Docker socket даёт привилегированный доступ к хосту; не считайте его безопасным только из-за характера запросов.
 
 ## Обновление, удаление и диагностика
 
@@ -77,6 +110,8 @@ Linux: `sudo systemctl stop pulse-agent`, после замены — `sudo syst
 
 ## Разработка и лицензия
 
-Go 1.23+: `go build .`, `go test ./...`, `go vet ./...`. Платформенные архивы: PowerShell 7.4+ и `./scripts/build.ps1 -Version v0.4.0`; Go должен быть в PATH или передан через `-GoExe`. Подробнее: [CONTRIBUTING.md](CONTRIBUTING.md).
+Go 1.23+: `go build .`, `go test ./...`, `go vet ./...`. Платформенные архивы: PowerShell 7.4+ и `./scripts/build.ps1 -Version v0.4.0`; Go должен быть в PATH или передан через `-GoExe`. Подробнее: [участие в разработке](CONTRIBUTING.ru.md).
 
-[Issues](https://github.com/HubbaBubbaPrepod/pulse-agent/issues) · [Changelog](CHANGELOG.md) · [MIT](LICENSE). Зависимости сохраняют собственные лицензии.
+[Issues](https://github.com/HubbaBubbaPrepod/pulse-agent/issues) · [История изменений](CHANGELOG.ru.md) · [MIT](LICENSE). Зависимости сохраняют собственные лицензии.
+
+[Политика безопасности](SECURITY.ru.md) · [Поддержка](SUPPORT.ru.md) · [Правила поведения](CODE_OF_CONDUCT.ru.md)

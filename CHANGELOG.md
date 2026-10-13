@@ -1,19 +1,26 @@
 # Changelog
 
+> [Русская версия](CHANGELOG.ru.md)
+
 ## [Unreleased]
 
-## [0.4.0] — первый публичный выпуск
+### Changed
+
+- Complete paired Russian and English documentation for installation, platform capabilities, contributing, support, and private vulnerability reports.
+- Updated the separate Docker module reference to v1.0.2.
+
+## [0.4.0] — first public release
 
 ### Added
 
-- Независимое приложение Linux amd64/arm64 и Windows amd64 для Pulse Monitor.
-- CPU/память, процессы, диски, соединения, журналы ОС и доступная GPU-телеметрия; опциональные метаданные пакетов через установленный TShark.
-- Отправка отчётов по HTTPS с отдельным токеном узла, сохранение одного отчёта для повторной отправки и курсора журналов.
-- Экспериментальный протокол модулей v1: скачивание проверенных SHA-256 бинарников, запуск отдельного процесса и JSON-результаты.
-- Отдельный Docker-модуль pulse-module-docker, служба Linux/systemd и Windows, платформенные архивы и SHA-256 checksums.
+- Standalone Linux amd64/arm64 and Windows amd64 application for Pulse Monitor.
+- CPU/memory, processes, disks, connections, OS logs, and available GPU telemetry; optional packet metadata through an installed TShark.
+- HTTPS reports using a separate host token, persistence of one report for retry, and a log cursor.
+- Experimental module protocol v1: download of SHA-256-verified binaries, separate process execution, and JSON results.
+- Separate pulse-module-docker collector, Linux/systemd and Windows services, platform archives, and SHA-256 checksums.
 
 ### Notes
 
-- Совместимая пара первого публичного выпуска: Pulse Monitor v0.4.0 / Pulse Agent v0.4.0.
-- Модули выполняются без песочницы с правами агента. GPU и журналы зависят от прав, ОС и драйвера.
-- До v1.0 будущая совместимость не гарантируется; несовместимые изменения будут описаны здесь.
+- Compatible pair for the first public release: Pulse Monitor v0.4.0 / Pulse Agent v0.4.0.
+- Modules run without a sandbox using the agent's privileges. GPU metrics and logs depend on permissions, the OS, and drivers.
+- Future compatibility is not guaranteed before v1.0; incompatible changes will be documented here.
