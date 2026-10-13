@@ -1,5 +1,7 @@
 # Pulse Agent
 
+[Pulse website](https://pulse.hubba-cloud.ru/en/) · [Practical guides](https://pulse.hubba-cloud.ru/en/guides/)
+
 [Русский](README.md) · **English**
 
 Native Linux/Windows telemetry agent for [Pulse Monitor](https://github.com/HubbaBubbaPrepod/pulse-monitor). Sends host metrics over HTTPS and supports optional native collector modules.
