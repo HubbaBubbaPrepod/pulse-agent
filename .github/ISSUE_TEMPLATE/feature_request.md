@@ -1,9 +1,9 @@
 ---
 name: Feature request / Предложение
 about: Describe a concrete need / Опишите конкретную потребность
-title: ""
-labels: ""
-assignees: ""
+title: ''
+labels: ''
+assignees: ''
 ---
 
 ## Problem and use case / Проблема и сценарий

@@ -16,11 +16,11 @@ The agent collects CPU/memory, processes, disks, connections, system logs, and a
 
 ## Pulse ecosystem
 
-| Repository | Purpose |
-| --- | --- |
-| [Pulse Monitor](https://github.com/HubbaBubbaPrepod/pulse-monitor) | Panel, users, hosts, history storage, and module management |
-| [Pulse Agent](https://github.com/HubbaBubbaPrepod/pulse-agent) | Native metric collection and outbound reports from each host |
-| [Pulse Module Docker](https://github.com/HubbaBubbaPrepod/pulse-module-docker) | Separate Docker container statistics module |
+| Repository                                                                     | Purpose                                                      |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| [Pulse Monitor](https://github.com/HubbaBubbaPrepod/pulse-monitor)             | Panel, users, hosts, history storage, and module management  |
+| [Pulse Agent](https://github.com/HubbaBubbaPrepod/pulse-agent)                 | Native metric collection and outbound reports from each host |
+| [Pulse Module Docker](https://github.com/HubbaBubbaPrepod/pulse-module-docker) | Separate Docker container statistics module                  |
 
 ## Quick start
 
@@ -71,22 +71,22 @@ Windows: `-PanelURL`, `-ServerID`, and `-TokenFile` are required; `-AgentExe` de
 
 ## Arguments
 
-| Argument | Meaning |
-| --- | --- |
-| `-url` | Panel origin; default `http://127.0.0.1:8080` |
-| `-server` | Required ID of a saved host |
-| `-token-file` | Token file path; default `agent.token` |
-| `-state` | Persistent state; default `agent-state` |
-| `-interval` | Sampling interval from `500ms` to `5s`; default `500ms` |
-| `-capture` | TShark interface; empty disables capture |
-| `-check` | Local diagnostics without a token or connection |
+| Argument      | Meaning                                                 |
+| ------------- | ------------------------------------------------------- |
+| `-url`        | Panel origin; default `http://127.0.0.1:8080`           |
+| `-server`     | Required ID of a saved host                             |
+| `-token-file` | Token file path; default `agent.token`                  |
+| `-state`      | Persistent state; default `agent-state`                 |
+| `-interval`   | Sampling interval from `500ms` to `5s`; default `500ms` |
+| `-capture`    | TShark interface; empty disables capture                |
+| `-check`      | Local diagnostics without a token or connection         |
 
 ## Data availability
 
-| Platform | Release architecture | Service | Limits |
-| --- | --- | --- | --- |
-| Linux | amd64, arm64 | systemd | Process, connection, and log visibility depends on OS permissions |
-| Windows | amd64 | Windows Service / LocalSystem by default | CIM/GPU Engine and capture depend on drivers and permissions |
+| Platform | Release architecture | Service                                  | Limits                                                            |
+| -------- | -------------------- | ---------------------------------------- | ----------------------------------------------------------------- |
+| Linux    | amd64, arm64         | systemd                                  | Process, connection, and log visibility depends on OS permissions |
+| Windows  | amd64                | Windows Service / LocalSystem by default | CIM/GPU Engine and capture depend on drivers and permissions      |
 
 GPU metrics depend on the OS, driver, and `nvidia-smi`; some Windows metrics are available through CIM/GPU Engine. Full Intel/AMD telemetry is not guaranteed. Missing metrics are marked unavailable, rather than zero.
 

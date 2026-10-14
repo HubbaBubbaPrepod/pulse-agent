@@ -1,9 +1,9 @@
 ---
 name: Bug report / Ошибка
 about: Reproducible agent problem / Воспроизводимая проблема агента
-title: ""
-labels: ""
-assignees: ""
+title: ''
+labels: ''
+assignees: ''
 ---
 
 Read [Support](https://github.com/HubbaBubbaPrepod/pulse-agent/blob/main/SUPPORT.md) / [Поддержка](https://github.com/HubbaBubbaPrepod/pulse-agent/blob/main/SUPPORT.ru.md). For vulnerabilities use [private reporting / приватный канал](https://github.com/HubbaBubbaPrepod/pulse-agent/security/advisories/new).

@@ -4,3 +4,6 @@ agent-state/
 *.token
 *.pem
 .env*
+
+# Local formatting tools
+node_modules/

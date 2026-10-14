@@ -22,3 +22,14 @@ Contributions are licensed under [MIT](LICENSE). Do not publish tokens, sensitiv
 Keep public documentation complete in both Russian and English. CI runs vet and unit tests on Linux/Windows, and race tests on Linux; this does not establish service installation success on every real host.
 
 Platform archives require PowerShell 7.4+ and `./scripts/build.ps1 -Version v0.4.0`. Parameters: `-Version` sets the archive version, `-GoExe` selects the Go command/path, and `-GoToolchain` selects the toolchain (default `go1.27.2`). `-SkipFrontend` applies to the panel and is unnecessary for the agent. The build retains archives, `checksums.txt`, and a staging directory under `artifacts/releases`; staging files are not automatically deleted.
+
+## Formatting
+
+Node.js 22.13+ is required for the development formatter. Install the pinned local version with `npm ci`. Node.js is not required to run the Go binaries.
+
+```shell
+npm run format
+npm run format:check
+```
+
+Prettier formats supported source files, JSON, CSS, Markdown and YAML. Go files use `gofmt`. Generated files, local data and verification files are excluded through `.prettierignore`. CI checks formatting before accepting changes.
