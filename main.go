@@ -122,7 +122,9 @@ func run(parent context.Context) error {
 	moduleCtx, cancelModules := context.WithCancel(ctx)
 	modulesDone := make(chan struct{})
 	go func() { defer close(modulesDone); runModules(moduleCtx, client, base, *id, token, *state) }()
-	defer func() { cancelModules(); <-modulesDone }()
+	operationsDone := make(chan struct{})
+	go func() { defer close(operationsDone); runModuleOperations(moduleCtx, client, base, *id, token, *state) }()
+	defer func() { cancelModules(); <-modulesDone; <-operationsDone }()
 	var bootRaw [16]byte
 	if _, err := rand.Read(bootRaw[:]); err != nil {
 		return err

@@ -37,6 +37,10 @@ func runCollector(ctx context.Context, path string, config map[string]any, args 
 	if err != nil {
 		return nil, err
 	}
+	return runCollectorPayload(ctx, path, input, args...)
+}
+
+func runCollectorPayload(ctx context.Context, path string, input []byte, args ...string) (json.RawMessage, error) {
 	cmd := exec.CommandContext(ctx, path, args...)
 	configureCommand(cmd)
 	cmd.Stdin = bytes.NewReader(input)
