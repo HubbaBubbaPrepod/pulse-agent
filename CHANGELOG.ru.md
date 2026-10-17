@@ -2,7 +2,7 @@
 
 > [English version](CHANGELOG.md)
 
-## [Unreleased]
+## [0.5.0] — 2026-10-18
 
 - Добавлен `-connect-address IP:port`: прямое подключение к Monitor с сохранением Host, SNI и проверки HTTPS-сертификата. Подходит для агента на одном сервере с Monitor за публичным прокси.
 

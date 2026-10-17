@@ -2,7 +2,7 @@
 
 > [Русская версия](CHANGELOG.ru.md)
 
-## [Unreleased]
+## [0.5.0] — 2026-10-18
 
 - Add optional `-connect-address IP:port` for direct Monitor routing while preserving the original HTTP Host, TLS SNI and certificate verification. Useful for an agent on the Monitor host behind a public proxy.
 
