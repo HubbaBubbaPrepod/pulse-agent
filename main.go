@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
-	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -75,6 +74,7 @@ func deliver(ctx context.Context, client *http.Client, endpoint, token string, r
 }
 func run(parent context.Context) error {
 	panel := flag.String("url", "http://127.0.0.1:8080", "Panel HTTPS origin (loopback HTTP allowed)")
+	connectAddress := flag.String("connect-address", "", "Optional direct IP:port for the Monitor origin; HTTPS identity remains unchanged")
 	id := flag.String("server", "", "Server ID from panel")
 	tokenFile := flag.String("token-file", "agent.token", "File containing the node token")
 	state := flag.String("state", "agent-state", "Persistent retry queue directory")
@@ -114,9 +114,10 @@ func run(parent context.Context) error {
 	}
 	ctx, stop := signal.NotifyContext(parent, os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
-	transport.MaxIdleConnsPerHost = 2
+	transport, err := agentTransport(*connectAddress)
+	if err != nil {
+		return err
+	}
 	client := &http.Client{Timeout: 10 * time.Second, Transport: transport, CheckRedirect: func(r *http.Request, via []*http.Request) error { return http.ErrUseLastResponse }}
 	defer transport.CloseIdleConnections()
 	moduleCtx, cancelModules := context.WithCancel(ctx)

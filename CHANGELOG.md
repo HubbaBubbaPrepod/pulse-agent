@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- Add optional `-connect-address IP:port` for direct Monitor routing while preserving the original HTTP Host, TLS SNI and certificate verification. Useful for an agent on the Monitor host behind a public proxy.
+
 - Add independent native v2 invocation transport, exact artifact pinning, grant checks, cancellation and persistent at-most-once manual execution receipts. Bound/redact public results and preserve v1 telemetry.
 
 ### Changed

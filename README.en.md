@@ -125,3 +125,5 @@ This development branch advertises `moduleRuntime:2` and handles separate bounde
 Keep state private: configuration and component State may contain credentials. Public Data/Error redact direct configured password matches, including object keys; State deliberately remains private and intact. Native components run with Agent OS privileges without a sandbox. `actions.execute` gates manual mutations in both Monitor and module code; it is not an OS permission boundary. Keep the state directory protected and do not run duplicate agents with the same identity.
 
 Requires a compatible unreleased v2 Monitor build. Published v0.4.0 does not support this protocol. Existing protocol1 collection remains compatible. See the Monitor [v2 contract](https://github.com/HubbaBubbaPrepod/pulse-monitor/blob/main/docs/MODULES-V2.en.md).
+
+When Agent and Monitor share a host behind a public proxy, append `-connect-address 127.0.0.1:2053` to connect locally. Keep `-url` set to the real HTTPS origin: certificate validation and HTTP Host remain unchanged. The override requires a literal IP and port and bypasses the environment proxy only when explicitly configured.
