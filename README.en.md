@@ -117,3 +117,11 @@ Go 1.23+: `go build .`, `go test ./...`, `go vet ./...`. To build platform archi
 [Issues](https://github.com/HubbaBubbaPrepod/pulse-agent/issues) · [Changelog](CHANGELOG.md) · [MIT](LICENSE). Dependencies retain their own licenses.
 
 [Security policy](SECURITY.md) · [Support](SUPPORT.md) · [Code of conduct](CODE_OF_CONDUCT.md)
+
+## Module runtime v2 (unreleased)
+
+This development branch advertises `moduleRuntime:2` and handles separate bounded native component invocations while normal telemetry continues. It accepts only authenticated leases from its configured Monitor, verifies exact artifact hashes, persists an exclusive receipt before execution and reports bounded results. Manual mutations are never automatically replayed after a crash or lost response. An unknown outcome requires observing state before manually retrying.
+
+Keep state private: configuration and component State may contain credentials. Public Data/Error redact direct configured password matches, including object keys; State deliberately remains private and intact. Native components run with Agent OS privileges without a sandbox. `actions.execute` gates manual mutations in both Monitor and module code; it is not an OS permission boundary. Keep the state directory protected and do not run duplicate agents with the same identity.
+
+Requires a compatible unreleased v2 Monitor build. Published v0.4.0 does not support this protocol. Existing protocol1 collection remains compatible. See the Monitor [v2 contract](https://github.com/HubbaBubbaPrepod/pulse-monitor/blob/main/docs/MODULES-V2.en.md).

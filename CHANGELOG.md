@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- Add independent native v2 invocation transport, exact artifact pinning, grant checks, cancellation and persistent at-most-once manual execution receipts. Bound/redact public results and preserve v1 telemetry.
+
 ### Changed
 
 - Complete paired Russian and English documentation for installation, platform capabilities, contributing, support, and private vulnerability reports.

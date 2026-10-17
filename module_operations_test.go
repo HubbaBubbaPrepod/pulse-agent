@@ -85,3 +85,53 @@ func TestExtensionArtifactIsBoundToOperationAndDigest(t *testing.T) {
 		t.Fatal("wrong digest accepted")
 	}
 }
+func TestExtensionRedactionIncludesKeysAndBoundsReceipts(t *testing.T) {
+	lease := extensionLease{ID: strings.Repeat("c", 64), Mutating: true, SecretFields: []string{"token"}, Invocation: extensionInvocation{Config: map[string]any{"token": "x"}}}
+	result := redactExtensionResult(extensionResult{Protocol: 2, Status: "ok", Data: json.RawMessage(`{"x":"x"}`), State: json.RawMessage(`{"private":"x"}`)}, lease)
+	var data map[string]any
+	json.Unmarshal(result.Data, &data)
+	if _, ok := data["x"]; ok {
+		t.Fatal("secret key exposed")
+	}
+	if string(result.State) != `{"private":"x"}` {
+		t.Fatal("private state was changed")
+	}
+	huge, _ := json.Marshal(map[string]string{"value": strings.Repeat("x", 100*1024)})
+	result = redactExtensionResult(extensionResult{Protocol: 2, Status: "ok", Data: huge}, lease)
+	receipt := extensionReceipt{ID: lease.ID, Completed: true, Result: result}
+	raw := encodeExtensionReceipt(receipt, lease.Mutating)
+	if len(raw) > 768*1024 {
+		t.Fatal("encoded receipt exceeds read limit")
+	}
+	json.Unmarshal(raw, &receipt)
+	if receipt.Result.Status != "unknown" {
+		t.Fatal("oversized mutation result must preserve uncertain outcome", receipt.Result.Status)
+	}
+}
+func TestOversizedExtensionReceiptIsReportedWithoutReplay(t *testing.T) {
+	state := t.TempDir()
+	id := strings.Repeat("d", 64)
+	if ok, err := claimExtensionReceipt(state, id, time.Now().Add(time.Minute)); err != nil || !ok {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(receiptPath(state, id), []byte(strings.Repeat("x", 800*1024)), 0600); err != nil {
+		t.Fatal(err)
+	}
+	posts := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		posts++
+		var body struct{ Failed bool }
+		if json.NewDecoder(r.Body).Decode(&body) != nil || !body.Failed {
+			t.Error("corrupt receipt not reported as uncertain failure")
+		}
+		w.WriteHeader(200)
+	}))
+	defer srv.Close()
+	flushExtensionReceipts(context.Background(), srv.Client(), srv.URL, "node", "token", state)
+	if posts != 1 {
+		t.Fatal("oversized receipt silently skipped", posts)
+	}
+	if ok, _ := claimExtensionReceipt(state, id, time.Now().Add(time.Minute)); ok {
+		t.Fatal("operation can be replayed")
+	}
+}

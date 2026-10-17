@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"runtime"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 )
@@ -179,8 +180,19 @@ func redactExtensionResult(result extensionResult, lease extensionLease) extensi
 			secrets = append(secrets, value)
 		}
 	}
+	sort.SliceStable(secrets, func(i, j int) bool { return len(secrets[i]) > len(secrets[j]) })
+	pairs := []string{}
+	seen := map[string]bool{}
 	for _, secret := range secrets {
-		result.Error = strings.ReplaceAll(result.Error, secret, "[REDACTED]")
+		if !seen[secret] {
+			pairs = append(pairs, secret, "[REDACTED]")
+			seen[secret] = true
+		}
+	}
+	replace := strings.NewReplacer(pairs...).Replace
+	result.Error = replace(result.Error)
+	if len(result.Error) > 256 {
+		result.Error = "Component reported an error"
 	}
 	var value any
 	d := json.NewDecoder(bytes.NewReader(result.Data))
@@ -193,23 +205,37 @@ func redactExtensionResult(result extensionResult, lease extensionLease) extensi
 	walk = func(v any) any {
 		switch x := v.(type) {
 		case string:
-			for _, secret := range secrets {
-				x = strings.ReplaceAll(x, secret, "[REDACTED]")
-			}
-			return x
+			return replace(x)
 		case []any:
 			for i, item := range x {
 				x[i] = walk(item)
 			}
 		case map[string]any:
+			out := map[string]any{}
 			for key, item := range x {
-				x[key] = walk(item)
+				out[replace(key)] = walk(item)
 			}
+			return out
 		}
 		return v
 	}
 	result.Data, _ = json.Marshal(walk(value))
 	return result
+}
+
+// Bound the final encoding, including JSON escaping and redaction expansion.
+func encodeExtensionReceipt(receipt extensionReceipt, mutating bool) []byte {
+	raw, err := json.Marshal(receipt)
+	if err == nil && len(raw) <= 768*1024 && len(receipt.Result.Data)+len(receipt.Result.State) <= 512*1024 {
+		return raw
+	}
+	status := "error"
+	if mutating {
+		status = "unknown"
+	}
+	receipt.Result = extensionResult{Protocol: 2, Status: status, Data: json.RawMessage(`{}`), Error: "Sanitized component output exceeds limit"}
+	raw, _ = json.Marshal(receipt)
+	return raw
 }
 func extensionOperationAllowed(ctx context.Context, client *http.Client, base, server, token, id string) bool {
 	response, err := moduleRequest(ctx, client, "GET", base+"/api/agent/"+url.PathEscape(server)+"/module-operations/"+id+"/status", token, nil)
@@ -262,7 +288,7 @@ func executeExtensionLease(ctx context.Context, client *http.Client, base, serve
 	}
 	result = redactExtensionResult(result, lease)
 	receipt := extensionReceipt{ID: lease.ID, ExpiresAt: lease.ExpiresAt, Completed: true, Result: result, Failed: failed}
-	raw, _ := json.Marshal(receipt)
+	raw := encodeExtensionReceipt(receipt, lease.Mutating)
 	_ = atomicFile(receiptPath(state, lease.ID), raw)
 }
 func flushExtensionReceipts(ctx context.Context, client *http.Client, base, server, token, state string) {
@@ -279,16 +305,22 @@ func flushExtensionReceipts(ctx context.Context, client *http.Client, base, serv
 			continue
 		}
 		path := receiptPath(state, id)
-		raw, err := os.ReadFile(path)
-		if err != nil || len(raw) > 768*1024 {
+		file, err := os.Open(path)
+		if err != nil {
+			continue
+		}
+		raw, readErr := io.ReadAll(io.LimitReader(file, 768*1024+1))
+		file.Close()
+		if readErr != nil {
 			continue
 		}
 		var receipt extensionReceipt
-		if json.Unmarshal(raw, &receipt) != nil {
-			receipt = extensionReceipt{ID: id, Completed: true, Failed: true, ExpiresAt: time.Now()}
-		}
-		if receipt.ID != id {
-			continue
+		if len(raw) > 768*1024 || json.Unmarshal(raw, &receipt) != nil || receipt.ID != id {
+			info, err := entry.Info()
+			if err != nil {
+				continue
+			}
+			receipt = extensionReceipt{ID: id, Completed: true, Failed: true, ExpiresAt: info.ModTime().Add(time.Minute)}
 		}
 		if receipt.Acknowledged {
 			if time.Now().After(receipt.ExpiresAt.Add(2 * time.Minute)) {
