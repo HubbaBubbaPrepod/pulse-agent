@@ -1,10 +1,12 @@
 module github.com/HubbaBubbaPrepod/pulse-agent
 
-go 1.23.0
+go 1.25.0
+
+toolchain go1.27.3
 
 require (
 	github.com/shirou/gopsutil/v4 v4.25.9
-	golang.org/x/sys v0.35.0
+	golang.org/x/sys v0.44.0
 )
 
 require (

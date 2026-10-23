@@ -48,7 +48,7 @@ func runCollectorPayload(ctx context.Context, path string, input []byte, args ..
 	cmd.Stdout = &out
 	cmd.Stderr = io.Discard
 	cmd.WaitDelay = time.Second
-	if err := cmd.Run(); err != nil {
+	if err := runModuleCommand(cmd); err != nil {
 		return nil, errors.New("Collector failed or timed out")
 	}
 	if !json.Valid(out.Bytes()) || len(out.Bytes()) > 512*1024 {

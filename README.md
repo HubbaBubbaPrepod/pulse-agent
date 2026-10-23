@@ -112,7 +112,7 @@ Linux: `sudo systemctl stop pulse-agent`, после замены — `sudo syst
 
 ## Разработка и лицензия
 
-Go 1.23+: `go build .`, `go test ./...`, `go vet ./...`. Платформенные архивы: PowerShell 7.4+ и `./scripts/build.ps1 -Version v0.4.0`; Go должен быть в PATH или передан через `-GoExe`. Подробнее: [участие в разработке](CONTRIBUTING.ru.md).
+Go 1.25+: `go build .`, `go test ./...`, `go vet ./...`. Платформенные архивы: PowerShell 7.4+ и `./scripts/build.ps1 -Version v0.4.0`; Go должен быть в PATH или передан через `-GoExe`. Подробнее: [участие в разработке](CONTRIBUTING.ru.md).
 
 [Issues](https://github.com/HubbaBubbaPrepod/pulse-agent/issues) · [История изменений](CHANGELOG.ru.md) · [MIT](LICENSE). Зависимости сохраняют собственные лицензии.
 

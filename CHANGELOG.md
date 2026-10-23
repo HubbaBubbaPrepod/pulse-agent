@@ -2,6 +2,14 @@
 
 > [Русская версия](CHANGELOG.ru.md)
 
+## Unreleased
+
+- Update the existing Windows support dependency to fix Unicode length validation; source builds now require Go 1.25+, release builds use Go 1.27.3.
+
+- Clean up native module descendants on timeout, cancellation and normal exit using Linux process groups / Windows Jobs.
+- Kill a suspended Windows root even when cancellation precedes job assignment.
+- Build release archives with Go 1.27.3. These lifetime controls do not sandbox trusted native code.
+
 ## [0.5.0] — 2026-10-18
 
 - Add optional `-connect-address IP:port` for direct Monitor routing while preserving the original HTTP Host, TLS SNI and certificate verification. Useful for an agent on the Monitor host behind a public proxy.

@@ -112,7 +112,7 @@ For problems, run `./pulse-agent -check` (`./pulse-agent.exe -check` on Windows)
 
 ## Development and license
 
-Go 1.23+: `go build .`, `go test ./...`, `go vet ./...`. To build platform archives, use PowerShell 7.4+ and `./scripts/build.ps1 -Version v0.4.0`; Go must be in PATH or supplied through `-GoExe`. See [contributing](CONTRIBUTING.md).
+Go 1.25+: `go build .`, `go test ./...`, `go vet ./...`. To build platform archives, use PowerShell 7.4+ and `./scripts/build.ps1 -Version v0.4.0`; Go must be in PATH or supplied through `-GoExe`. See [contributing](CONTRIBUTING.md).
 
 [Issues](https://github.com/HubbaBubbaPrepod/pulse-agent/issues) · [Changelog](CHANGELOG.md) · [MIT](LICENSE). Dependencies retain their own licenses.
 

@@ -2,7 +2,7 @@
 
 > [Русская версия](CONTRIBUTING.ru.md)
 
-Use Go 1.23+. Clone the repository, then run:
+Use Go 1.25+. Clone the repository, then run:
 
 ```powershell
 go build .
