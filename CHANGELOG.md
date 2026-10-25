@@ -4,6 +4,9 @@
 
 ## Unreleased
 
+- Add opt-in `wasip1` components with a bounded WASI interpreter, explicit capability brokers, runtime negotiation and isolated state; keep omitted runtime compatible with native modules.
+- Withhold reserved host settings and password fields from guests; require renewed consent after runtime or capability contract changes.
+
 - Update the existing Windows support dependency to fix Unicode length validation; source builds now require Go 1.25+, release builds use Go 1.27.3.
 
 - Clean up native module descendants on timeout, cancellation and normal exit using Linux process groups / Windows Jobs.

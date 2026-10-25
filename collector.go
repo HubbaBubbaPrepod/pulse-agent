@@ -93,6 +93,7 @@ func (c *collector) collect(ctx context.Context) (agentReport, error) {
 	}
 	r.Capabilities["cpu"] = "available"
 	r.Capabilities["moduleRuntime"] = "2"
+	r.Capabilities["moduleWASI"] = "1"
 	r.Capabilities["modulePlatform"] = runtime.GOOS + "-" + runtime.GOARCH
 	if first {
 		r.Capabilities["cpu"] = "warming up"

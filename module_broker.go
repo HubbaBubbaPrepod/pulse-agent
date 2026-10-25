@@ -145,5 +145,9 @@ func (b *extensionBroker) Finalize(result extensionResult, runErr error) (extens
 		data[key] = value
 	}
 	result.Data, runErr = json.Marshal(data)
+	if runErr != nil || len(result.Data)+len(result.State) > modulewasm.MaxOutputBytes {
+		proof, _ := json.Marshal(b.proof)
+		return extensionResult{Protocol: 2, Status: "unknown", Data: proof, Error: "Host action completed but guest result exceeded limits; it was not replayed"}, nil
+	}
 	return result, runErr
 }

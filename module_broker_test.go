@@ -166,3 +166,12 @@ func TestBrokerCancellationPreventsOrCancelsHostIO(t *testing.T) {
 		t.Fatal("host I/O ignored cancellation")
 	}
 }
+
+func TestBrokerFinalizationKeepsBoundedTrustedProof(t *testing.T) {
+	b := &extensionBroker{lease: extensionLease{Mutating: true}, mutationAttempted: true, mutationStatus: "ok", proof: map[string]any{"stateVerified": true}}
+	data, _ := json.Marshal(map[string]string{"padding": strings.Repeat("x", 512*1024-20)})
+	out, err := b.Finalize(extensionResult{Protocol: 2, Status: "ok", Data: data}, nil)
+	if err != nil || out.Status != "unknown" || len(out.Data)+len(out.State) > 512*1024 || !strings.Contains(string(out.Data), "stateVerified") {
+		t.Fatal("merged result lost bounded trusted proof", out.Status, err)
+	}
+}

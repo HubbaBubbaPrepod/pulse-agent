@@ -40,6 +40,7 @@ type extensionResult struct {
 	Error    string          `json:"error,omitempty"`
 }
 type extensionLease struct {
+	Runtime           string              `json:"runtime,omitempty"`
 	ID                string              `json:"id"`
 	ModuleID          string              `json:"moduleId"`
 	ComponentID       string              `json:"componentId"`
@@ -63,6 +64,9 @@ type extensionReceipt struct {
 var extensionOperationID = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 func validExtensionLease(lease extensionLease, server string) error {
+	if lease.Runtime != "" && lease.Runtime != "native" && lease.Runtime != "wasip1" {
+		return errors.New("Unsupported component runtime")
+	}
 	digest, err := hex.DecodeString(lease.SHA256)
 	if !extensionOperationID.MatchString(lease.ID) || !moduleID.MatchString(lease.ModuleID) || !moduleID.MatchString(lease.ComponentID) || !moduleVer.MatchString(lease.Version) || len(lease.Version) > 48 || err != nil || len(digest) != 32 || lease.Invocation.Protocol != 2 || lease.Invocation.ID != lease.ID || lease.Invocation.ServerID != server || time.Now().After(lease.ExpiresAt) || time.Until(lease.ExpiresAt) > 2*time.Minute {
 		return errors.New("Invalid or expired component lease")
@@ -84,10 +88,18 @@ func runExtensionInvocation(ctx context.Context, path string, input extensionInv
 	if err != nil {
 		return result, err
 	}
+	return decodeExtensionResult(output)
+}
+
+func decodeExtensionResult(output []byte) (extensionResult, error) {
+	var result extensionResult
 	d := json.NewDecoder(bytes.NewReader(output))
 	d.DisallowUnknownFields()
-	if d.Decode(&result) != nil || result.Protocol != 2 || (result.Status != "ok" && result.Status != "error" && result.Status != "unknown") || len(result.Error) > 256 {
+	if d.Decode(&result) != nil || result.Protocol != 2 || (result.Status != "ok" && result.Status != "error" && result.Status != "unknown") || len(result.Error) > 256 || len(result.Data)+len(result.State) > 512*1024 {
 		return result, errors.New("Invalid component response")
+	}
+	if err := d.Decode(new(any)); !errors.Is(err, io.EOF) {
+		return result, errors.New("Expected one component response")
 	}
 	if len(result.Data) == 0 {
 		result.Data = json.RawMessage(`{}`)
@@ -129,8 +141,13 @@ func installExtensionCollector(ctx context.Context, client *http.Client, base, s
 		return "", err
 	}
 	suffix := ""
+	mode := os.FileMode(0700)
 	if runtime.GOOS == "windows" {
 		suffix = ".exe"
+	}
+	if lease.Runtime == "wasip1" {
+		suffix = ".wasm"
+		mode = 0600
 	}
 	root := filepath.Join(state, "extensions", lease.ModuleID, lease.ComponentID)
 	if err := os.MkdirAll(root, 0700); err != nil {
@@ -142,7 +159,10 @@ func installExtensionCollector(ctx context.Context, client *http.Client, base, s
 		if !strings.EqualFold(hex.EncodeToString(digest[:]), lease.SHA256) {
 			return "", errors.New("Cached component digest mismatch")
 		}
-		return path, os.Chmod(path, 0700)
+		if lease.Runtime == "wasip1" && !validWASIArtifact(raw) {
+			return "", errors.New("Invalid WASM artifact")
+		}
+		return path, os.Chmod(path, mode)
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return "", err
 	}
@@ -163,10 +183,13 @@ func installExtensionCollector(ctx context.Context, client *http.Client, base, s
 	if !strings.EqualFold(hex.EncodeToString(digest[:]), lease.SHA256) {
 		return "", errors.New("Component artifact digest mismatch")
 	}
+	if lease.Runtime == "wasip1" && !validWASIArtifact(raw) {
+		return "", errors.New("Invalid WASM artifact")
+	}
 	if err := atomicFile(path, raw); err != nil {
 		return "", err
 	}
-	return path, os.Chmod(path, 0700)
+	return path, os.Chmod(path, mode)
 }
 func redactExtensionResult(result extensionResult, lease extensionLease) extensionResult {
 	secrets := []string{}
@@ -280,7 +303,7 @@ func executeExtensionLease(ctx context.Context, client *http.Client, base, serve
 					}
 				}
 			}()
-			result, err = runExtensionInvocation(child, path, lease.Invocation)
+			result, err = runExtensionLease(child, path, lease)
 			failed = err != nil
 			cancel()
 			<-watcherDone
