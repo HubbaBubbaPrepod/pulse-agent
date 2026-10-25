@@ -13,8 +13,12 @@ The first public compatible pair is Pulse Agent v0.4.0 / Pulse Monitor v0.4.0. U
 - Download official release archives and verify `checksums.txt`. Checksums detect corruption or mismatch; they are not an independent signature of the publisher.
 - Remote panel connections require HTTPS with certificate verification. Loopback HTTP is allowed for development. Restrict access to the panel and trust internal CAs through the OS.
 - Each host needs its own token and state directory. Protect their permissions, revoke a compromised token in the panel, replace the token file, and restart the agent.
-- Modules execute native code without a sandbox using the agent's privileges. SHA-256 checks verify downloaded bytes; module `permissions` do not enforce OS isolation. Install only trusted packages.
+- Native modules execute code without a sandbox using the agent's privileges. SHA-256 checks verify downloaded bytes; module `permissions` do not enforce OS isolation. Install only trusted packages.
 - Docker socket access is privileged host access, even when the module issues read requests. TShark/Npcap require separate installation and capture permissions.
 - Process command lines, logs, connection addresses, and packet protocol summaries can expose sensitive data. Review panel access and redact reports before sharing them.
 
 If a host or module is compromised, stop the affected agent/module, restrict access, preserve relevant logs and state for investigation, and rotate affected credentials. Do not delete history or retry state as an automatic incident response step.
+
+## Isolated components
+
+WASI components use an embedded interpreter without host filesystem mounts, inherited secrets, raw network or native process access. Explicit broker grants authorize scoped Docker operations or configured notifications. The host runtime, broker and Docker daemon remain trusted; 128 MiB limits guest linear memory, not total host RSS. Native components remain full trust. See [the WASI contract](https://github.com/HubbaBubbaPrepod/pulse-monitor/blob/main/docs/MODULES-WASI.en.md).

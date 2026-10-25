@@ -2,7 +2,7 @@
 
 > [Русская версия](CHANGELOG.ru.md)
 
-## Unreleased
+## [0.6.0] — 2026-10-25
 
 - Add opt-in `wasip1` components with a bounded WASI interpreter, explicit capability brokers, runtime negotiation and isolated state; keep omitted runtime compatible with native modules.
 - Withhold reserved host settings and password fields from guests; require renewed consent after runtime or capability contract changes.

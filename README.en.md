@@ -1,5 +1,7 @@
 # Pulse Agent
 
+Isolated WASI modules are available with Monitor 0.7.0 / Agent 0.6.0. They receive only explicit scoped host-broker operations; native modules remain full trust. See the [WASI runtime contract](https://github.com/HubbaBubbaPrepod/pulse-monitor/blob/main/docs/MODULES-WASI.en.md).
+
 [Pulse website](https://pulse.hubba-cloud.ru/en/) · [Practical guides](https://pulse.hubba-cloud.ru/en/guides/)
 
 [Русский](README.md) · **English**
@@ -120,7 +122,7 @@ Go 1.25+: `go build .`, `go test ./...`, `go vet ./...`. To build platform archi
 
 ## Module runtime v2 (unreleased)
 
-This development branch advertises `moduleRuntime:2` and handles separate bounded native component invocations while normal telemetry continues. It accepts only authenticated leases from its configured Monitor, verifies exact artifact hashes, persists an exclusive receipt before execution and reports bounded results. Manual mutations are never automatically replayed after a crash or lost response. An unknown outcome requires observing state before manually retrying.
+Agent 0.6.0 advertises `moduleRuntime:2` and `moduleWASI:1` and handles separate bounded native component invocations while normal telemetry continues. It accepts only authenticated leases from its configured Monitor, verifies exact artifact hashes, persists an exclusive receipt before execution and reports bounded results. Manual mutations are never automatically replayed after a crash or lost response. An unknown outcome requires observing state before manually retrying.
 
 Keep state private: configuration and component State may contain credentials. Public Data/Error redact direct configured password matches, including object keys; State deliberately remains private and intact. Native components run with Agent OS privileges without a sandbox. `actions.execute` gates manual mutations in both Monitor and module code; it is not an OS permission boundary. Keep the state directory protected and do not run duplicate agents with the same identity.
 
