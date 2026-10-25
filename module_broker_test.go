@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -173,5 +174,34 @@ func TestBrokerFinalizationKeepsBoundedTrustedProof(t *testing.T) {
 	out, err := b.Finalize(extensionResult{Protocol: 2, Status: "ok", Data: data}, nil)
 	if err != nil || out.Status != "unknown" || len(out.Data)+len(out.State) > 512*1024 || !strings.Contains(string(out.Data), "stateVerified") {
 		t.Fatal("merged result lost bounded trusted proof", out.Status, err)
+	}
+}
+
+func TestBrokerAllowsDockerGracefulStopAcknowledgement(t *testing.T) {
+	id := strings.Repeat("a", 64)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			time.Sleep(5500 * time.Millisecond)
+			w.WriteHeader(204)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{"Id": id, "State": map[string]any{"Running": false, "Status": "exited"}})
+	}))
+	defer srv.Close()
+	client, err := newBrokerDockerClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.CloseIdleConnections()
+	transport, ok := client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatal("Unexpected broker transport")
+	}
+	transport.DialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, "tcp", srv.Listener.Addr().String())
+	}
+	result, err := handleDockerBrokerOperation(context.Background(), client, "stop", id, []string{"actions.execute"})
+	if err != nil || result["stateVerified"] != true {
+		t.Fatal("graceful stop acknowledgement timed out", err)
 	}
 }
