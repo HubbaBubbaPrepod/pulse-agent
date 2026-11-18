@@ -9,6 +9,7 @@ import (
 
 func TestCollectorReturnsHostAndRealMemory(t *testing.T) {
 	c := newCollector()
+	defer c.gpuCollector.closePlatformGPU()
 	r, err := c.collect(context.Background())
 	if err != nil {
 		t.Fatal(err)

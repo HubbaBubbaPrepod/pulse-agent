@@ -42,6 +42,7 @@ type collector struct {
 	gpuMemory         map[int]*float64
 	gpuLoad           map[int]*float64
 	gpuStatus         string
+	gpuCollector      gpuCollector
 }
 
 func newCollector() *collector {
@@ -263,7 +264,7 @@ func (c *collector) collect(ctx context.Context) (agentReport, error) {
 	}
 	if now.Sub(c.gpuAt) >= 5*time.Second {
 		prior := c.gpuRows
-		c.gpuRows, c.gpuMemory, c.gpuLoad, c.gpuStatus = collectGPU(ctx)
+		c.gpuRows, c.gpuMemory, c.gpuLoad, c.gpuStatus = c.gpuCollector.collect(ctx)
 		for i := range c.gpuRows {
 			if c.gpuRows[i].Supported["utilization"] {
 				for _, old := range prior {

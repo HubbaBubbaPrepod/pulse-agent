@@ -2,6 +2,11 @@
 
 > [Русская версия](CHANGELOG.ru.md)
 
+## [0.7.0] — 2026-11-18
+
+- Add vendor-independent GPU discovery on Linux DRM and Windows DXGI, AMD sysfs/hwmon sensors, Intel i915/xe DRM process counters, and Windows WDDM utilization and dedicated memory matched by LUID. Keep the existing report format and per-metric availability flags.
+- Preserve mixed-vendor and compute-only NVIDIA adapters, deduplicate DRM clients, normalize engine capacity, and keep unavailable sensors distinct from zero. Hardware and driver limitations are documented in `GPU.md`.
+
 ## [0.6.0] — 2026-10-25
 
 - Add opt-in `wasip1` components with a bounded WASI interpreter, explicit capability brokers, runtime negotiation and isolated state; keep omitted runtime compatible with native modules.

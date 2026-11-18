@@ -88,9 +88,9 @@ Windows: `-PanelURL`, `-ServerID`, and `-TokenFile` are required; `-AgentExe` de
 | Platform | Release architecture | Service                                  | Limits                                                            |
 | -------- | -------------------- | ---------------------------------------- | ----------------------------------------------------------------- |
 | Linux    | amd64, arm64         | systemd                                  | Process, connection, and log visibility depends on OS permissions |
-| Windows  | amd64                | Windows Service / LocalSystem by default | CIM/GPU Engine and capture depend on drivers and permissions      |
+| Windows  | amd64                | Windows Service / LocalSystem by default | DXGI/PDH and capture depend on drivers and permissions            |
 
-GPU metrics depend on the OS, driver, and `nvidia-smi`; some Windows metrics are available through CIM/GPU Engine. Full Intel/AMD telemetry is not guaranteed. Missing metrics are marked unavailable, rather than zero.
+GPU collection supports NVIDIA, AMD and Intel on Linux and Windows through `nvidia-smi`, Linux DRM/sysfs and Windows DXGI/PDH. Individual sensors depend on the hardware and driver. See [GPU telemetry](GPU.md).
 
 Connections and aggregate transfer rates work without extra programs. Install TShark separately for packet metadata; Windows requires Npcap and capture permissions. List interfaces with `tshark -D`, then add `-capture 1` or an interface name. The agent does not install drivers. It does not save packet payloads, associate packets with PIDs, or calculate transfer rates for individual connections. Capture is a metadata sample limited to 256 packets per report; protocol summaries can still contain sensitive information.
 

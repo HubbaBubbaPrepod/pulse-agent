@@ -85,7 +85,9 @@ func run(parent context.Context) error {
 	if *check {
 		ctx, cancel := context.WithTimeout(parent, 15*time.Second)
 		defer cancel()
-		report, err := newCollector().collect(ctx)
+		c := newCollector()
+		defer c.gpuCollector.closePlatformGPU()
+		report, err := c.collect(ctx)
 		if err != nil {
 			return err
 		}
@@ -133,6 +135,7 @@ func run(parent context.Context) error {
 	boot := hex.EncodeToString(bootRaw[:])
 	sequence := uint64(0)
 	c := newCollector()
+	defer c.gpuCollector.closePlatformGPU()
 	cursorPath := filepath.Join(*state, "log-cursor")
 	if raw, err := os.ReadFile(cursorPath); err == nil {
 		stamp, err := time.Parse(time.RFC3339Nano, string(raw))
