@@ -40,25 +40,28 @@ type extensionResult struct {
 	Error    string          `json:"error,omitempty"`
 }
 type extensionLease struct {
-	Runtime           string              `json:"runtime,omitempty"`
-	ID                string              `json:"id"`
-	ModuleID          string              `json:"moduleId"`
-	ComponentID       string              `json:"componentId"`
-	Version           string              `json:"version"`
-	SHA256            string              `json:"sha256"`
-	Mutating          bool                `json:"mutating"`
-	Invocation        extensionInvocation `json:"invocation"`
-	ExpiresAt         time.Time           `json:"expiresAt"`
-	SecretFields      []string            `json:"secretFields"`
-	SecretInputFields []string            `json:"secretInputFields"`
+	ConfigurationDigest string              `json:"configurationDigest,omitempty"`
+	Runtime             string              `json:"runtime,omitempty"`
+	ID                  string              `json:"id"`
+	ModuleID            string              `json:"moduleId"`
+	ComponentID         string              `json:"componentId"`
+	Version             string              `json:"version"`
+	SHA256              string              `json:"sha256"`
+	Mutating            bool                `json:"mutating"`
+	Invocation          extensionInvocation `json:"invocation"`
+	ExpiresAt           time.Time           `json:"expiresAt"`
+	SecretFields        []string            `json:"secretFields"`
+	SecretInputFields   []string            `json:"secretInputFields"`
 }
 type extensionReceipt struct {
-	ID           string          `json:"id"`
-	ExpiresAt    time.Time       `json:"expiresAt"`
-	Completed    bool            `json:"completed"`
-	Acknowledged bool            `json:"acknowledged"`
-	Result       extensionResult `json:"result"`
-	Failed       bool            `json:"failed"`
+	Phase        string                 `json:"phase,omitempty"`
+	Verification *extensionVerification `json:"verification,omitempty"`
+	ID           string                 `json:"id"`
+	ExpiresAt    time.Time              `json:"expiresAt"`
+	Completed    bool                   `json:"completed"`
+	Acknowledged bool                   `json:"acknowledged"`
+	Result       extensionResult        `json:"result"`
+	Failed       bool                   `json:"failed"`
 }
 
 var extensionOperationID = regexp.MustCompile(`^[a-f0-9]{64}$`)
@@ -282,6 +285,24 @@ func executeExtensionLease(ctx context.Context, client *http.Client, base, serve
 	child, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	result := extensionResult{}
+	var verification *extensionVerification
+	child = context.WithValue(child, extensionCheckpointKey{}, func(previousStart string) error {
+		candidate, err := verificationForLease(lease, previousStart)
+		if err != nil {
+			return err
+		}
+		receipt := extensionReceipt{ID: lease.ID, ExpiresAt: lease.ExpiresAt, Phase: "verifying", Verification: candidate}
+		if err := atomicFile(receiptPath(state, lease.ID), encodeExtensionReceipt(receipt, true)); err != nil {
+			return err
+		}
+		verification = candidate
+		// Compatibility: an old Monitor can reject the additive phase notification.
+		// The durable claim still prevents replay, and recovery fails closed there.
+		if !notifyExtensionVerifying(child, client, base, server, token, lease.ID) {
+			return errors.New("Docker action permission revoked before dispatch")
+		}
+		return nil
+	})
 	failed := true
 	if extensionOperationAllowed(child, client, base, server, token, lease.ID) {
 		path, err := installExtensionCollector(child, client, base, server, token, state, lease)
@@ -310,7 +331,13 @@ func executeExtensionLease(ctx context.Context, client *http.Client, base, serve
 		}
 	}
 	result = redactExtensionResult(result, lease)
-	receipt := extensionReceipt{ID: lease.ID, ExpiresAt: lease.ExpiresAt, Completed: true, Result: result, Failed: failed}
+	receipt := extensionReceipt{ID: lease.ID, ExpiresAt: lease.ExpiresAt, Completed: true, Result: result, Failed: failed, Verification: verification}
+	if verification != nil && (failed || result.Status == "unknown") {
+		receipt.Completed = false
+		receipt.Failed = false
+		receipt.Phase = "verifying"
+		receipt.Result = extensionResult{Protocol: 2, Status: "unknown", Data: json.RawMessage(`{}`), Error: "Docker outcome is being verified without replay"}
+	}
 	raw := encodeExtensionReceipt(receipt, lease.Mutating)
 	_ = atomicFile(receiptPath(state, lease.ID), raw)
 }
@@ -351,7 +378,17 @@ func flushExtensionReceipts(ctx context.Context, client *http.Client, base, serv
 			}
 			continue
 		}
-		// An unfinished persisted claim means the previous process may have executed it.
+		if receipt.Verification != nil && !receipt.Completed {
+			receipt = reconcileExtensionReceipt(ctx, client, nil, base, server, token, receipt)
+			if err := atomicFile(path, encodeExtensionReceipt(receipt, true)); err != nil {
+				continue
+			}
+			if !receipt.Completed {
+				notifyExtensionVerifying(ctx, client, base, server, token, id)
+				continue
+			}
+		}
+		// An unfinished legacy claim has no trusted postcondition metadata.
 		if !receipt.Completed {
 			receipt.Completed = true
 			receipt.Failed = true

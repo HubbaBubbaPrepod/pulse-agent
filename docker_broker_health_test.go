@@ -91,3 +91,74 @@ func TestDockerBrokerControlUnknownWhenPostconditionCannotBeEstablished(t *testi
 		})
 	}
 }
+
+func TestDockerBrokerLostReplyReconcilesWithoutRepeatingPost(t *testing.T) {
+	id := strings.Repeat("a", 64)
+	var posts atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			posts.Add(1)
+			c, _, _ := w.(http.Hijacker).Hijack()
+			c.Close()
+			return
+		}
+		started := "2026-10-25T10:00:00Z"
+		if posts.Load() > 0 {
+			started = "2026-10-25T10:01:00Z"
+		}
+		fmt.Fprintf(w, `{"Id":%q,"State":{"Running":true,"StartedAt":%q,"Health":{"Status":"healthy"}}}`, id, started)
+	}))
+	defer srv.Close()
+	client := srv.Client()
+	client.Transport = &brokerTestTransport{url: srv.URL, base: client.Transport}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	result, err := handleDockerBrokerOperation(ctx, client, "restart", id, []string{"actions.execute"})
+	if err != nil || result["stateVerified"] != true || posts.Load() != 1 {
+		t.Fatalf("lost acknowledgement must reconcile exact state without replay: result=%v err=%v posts=%d", result, err, posts.Load())
+	}
+}
+func TestDockerBrokerUnhealthySoonAfterStartCannotClaimStableState(t *testing.T) {
+	id := strings.Repeat("b", 64)
+	start := time.Now()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			w.WriteHeader(204)
+			return
+		}
+		fmt.Fprintf(w, `{"Id":%q,"State":{"Running":%t,"StartedAt":"2026-10-25T10:00:00Z"}}`, id, time.Since(start) < 150*time.Millisecond)
+	}))
+	defer srv.Close()
+	client := srv.Client()
+	client.Transport = &brokerTestTransport{url: srv.URL, base: client.Transport}
+	ctx, cancel := context.WithTimeout(context.Background(), 700*time.Millisecond)
+	defer cancel()
+	_, err := handleDockerBrokerOperation(ctx, client, "start", id, []string{"actions.execute"})
+	var uncertain *uncertainDockerError
+	if !errors.As(err, &uncertain) {
+		t.Fatalf("brief Running without HEALTHCHECK is not stable readiness: %v", err)
+	}
+}
+
+func TestDockerBrokerGracePeriodRequiresSameContainerIncarnation(t *testing.T) {
+	id := strings.Repeat("c", 64)
+	var reads atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			w.WriteHeader(204)
+			return
+		}
+		started := time.Date(2026, 11, 20, 10, 0, int(reads.Add(1)), 0, time.UTC).Format(time.RFC3339Nano)
+		fmt.Fprintf(w, `{"Id":%q,"State":{"Running":true,"StartedAt":%q}}`, id, started)
+	}))
+	defer srv.Close()
+	client := srv.Client()
+	client.Transport = &brokerTestTransport{url: srv.URL, base: client.Transport}
+	ctx, cancel := context.WithTimeout(context.Background(), 3400*time.Millisecond)
+	defer cancel()
+	_, err := handleDockerBrokerOperation(ctx, client, "start", id, []string{"actions.execute"})
+	var uncertain *uncertainDockerError
+	if !errors.As(err, &uncertain) {
+		t.Fatalf("restarting container passed grace period: %v", err)
+	}
+}

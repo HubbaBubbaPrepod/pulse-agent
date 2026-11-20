@@ -2,6 +2,11 @@
 
 > [Русская версия](CHANGELOG.ru.md)
 
+## [0.7.1] — 2026-11-20
+
+- Persist Docker verification before dispatch and recover via inspect without replaying mutations.
+- Supervise native child process trees after Agent termination on Linux and Windows.
+
 ## [0.7.0] — 2026-11-18
 
 - Add vendor-independent GPU discovery on Linux DRM and Windows DXGI, AMD sysfs/hwmon sensors, Intel i915/xe DRM process counters, and Windows WDDM utilization and dedicated memory matched by LUID. Keep the existing report format and per-metric availability flags.

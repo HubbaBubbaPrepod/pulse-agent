@@ -96,7 +96,13 @@ func (b *extensionBroker) Call(ctx context.Context, raw json.RawMessage) (json.R
 		b.mutationAttempted = true
 		b.mutationStatus = "unknown"
 	}
-	data, err := handleDockerBrokerOperation(ctx, b.client, action, id, grants)
+	var prepare func(string) error
+	if action != "logs" {
+		if checkpoint, ok := ctx.Value(extensionCheckpointKey{}).(func(string) error); ok {
+			prepare = checkpoint
+		}
+	}
+	data, err := handlePreparedDockerBrokerOperation(ctx, b.client, action, id, grants, prepare)
 	if err != nil {
 		var uncertain *uncertainDockerError
 		status := "error"
